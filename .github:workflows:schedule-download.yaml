@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write   # needed to push gh-pages
-  id-token: write
 
 jobs:
   publish:
