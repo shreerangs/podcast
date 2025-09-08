@@ -1,0 +1,48 @@
+name: Download Playlists -> Publish to R2
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # every 6 hours (UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: write   # needed to push gh-pages
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true  # allows git push using GITHUB_TOKEN
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg python3-pip
+          python3 -m pip install --upgrade pip
+
+      - name: Install python tools
+        run: |
+          pip3 install yt-dlp awscli
+
+      - name: Configure env and run
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET:     ${{ secrets.R2_BUCKET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          PLAYLIST_URLS: ${{ secrets.PLAYLIST_URLS }}
+          RSS_BASE_URL:  ${{ secrets.RSS_BASE_URL }}   # optional (can be blank)
+          GITHUB_WORKSPACE: ${{ github.workspace }}
+        run: |
+          # run the orchestrator (script checks for GITHUB_ACTIONS to push feeds)
+          chmod +x download-and-publish.sh
+          ./download-and-publish.sh
+
+      - name: Show feeds written
+        if: always()
+        run: |
+          ls -al feed-*.xml || true
