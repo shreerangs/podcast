@@ -19,9 +19,9 @@ mkdir -p "$WORKDIR"
 cd "$WORKDIR"
 
 # setup aws profile for R2 (will be used by aws cli)
-aws configure set aws_access_key_id "$R2_ACCESS_KEY_ID" --profile r2
-aws configure set aws_secret_access_key "$R2_SECRET_ACCESS_KEY" --profile r2
-aws configure set region auto --profile r2
+export AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID"
+export AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY"
+export AWS_DEFAULT_REGION="auto"
 
 log(){ echo "[$(date --iso-8601=seconds)] $*"; }
 
@@ -78,7 +78,7 @@ find . -type f \( -name "*.jpg" -o -name "*.png" -o -name "*.info.json" \) -prin
   else
     ct="image/jpeg"
   fi
-  aws s3 cp "$f" "s3://$R2_BUCKET/$key" --endpoint-url "$R2_ENDPOINT" --profile r2 --no-progress --content-type "$ct"
+  aws s3 cp "$f" "s3://$R2_BUCKET/$key" --endpoint-url "$R2_ENDPOINT" --no-progress --content-type "$ct"
 done
 
 # generate RSS feeds (one per playlist folder)
