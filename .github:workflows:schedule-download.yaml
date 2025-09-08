@@ -27,19 +27,34 @@ jobs:
         run: |
           pip3 install yt-dlp awscli
 
-      - name: Configure env and run
+           - name: Configure env and run
         env:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_BUCKET:     ${{ secrets.R2_BUCKET }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           PLAYLIST_URLS: ${{ secrets.PLAYLIST_URLS }}
-          RSS_BASE_URL:  ${{ secrets.RSS_BASE_URL }}   # optional (can be blank)
+          RSS_BASE_URL:  ${{ secrets.RSS_BASE_URL }}
           GITHUB_WORKSPACE: ${{ github.workspace }}
         run: |
-          # run the orchestrator (script checks for GITHUB_ACTIONS to push feeds)
+          set -euo pipefail
+
+          # write aws credentials to env so aws cli works without --profile
+          export AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID"
+          export AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY"
+          export AWS_DEFAULT_REGION="auto"
+
+          # create temp dir for cookies
+          mkdir -p /tmp/yt-cookies
+
+          # fetch cookies.txt from R2 (private object)
+          aws s3 cp "s3://$R2_BUCKET/secure/cookies.txt" /tmp/yt-cookies/cookies.txt \
+            --endpoint-url "https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com"
+
+          echo "cookie first line: $(head -n 1 /tmp/yt-cookies/cookies.txt || true)"
+
           chmod +x download-and-publish.sh
-          ./download-and-publish.sh
+          ./download-and-publish.sh /tmp/yt-cookies/cookies.txt
 
       - name: Show feeds written
         if: always()
